@@ -4,7 +4,7 @@
 * **Date:** 2026-07-26
 
 ## Context
-If this backend bucket is defined inside either `persistent/` or `ephemeral/`, destroying that stack risks deleting the state file itself.
+If this backend bucket is defined inside either `persistent/` or `ephemeral/`, destroying that stack risks deleting the state file itself. A bucket cannot be managed by the state file it stores. That's why it's outside, not just safer. Manage remote state infrastructure within the same stack that relies on it creates a circular dependency ("chicken-and-egg" problem).
 
 ## Decision
 We will provision the backend S3 bucket completely outside both `persistent/` and `ephemeral/`.

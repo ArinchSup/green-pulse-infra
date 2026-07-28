@@ -6,7 +6,7 @@
 ## Context
 Running an always-on EKS cluster costs approximately **$190–$215/month**, as we have limited budget. We can't let it always on.
 
-However, standard `terraform destroy` is all-or-nothing in a single state file. Destroying the stack deletes multi-gigabyte AI container images in ECR, forcing long, expensive rebuild/push sessions (~$0.30/hr in build compute and developer time) every time the environment is created.
+However, standard `terraform destroy` is all-or-nothing within a single state file. Destroying the stack deletes multi-gigabyte AI container images stored in ECR, forcing long rebuilds and pushing multi-GB image layers that waste **20–40 minutes of wall-clock time** every time the environment is recreated.
 
 ## Decision
 We will divide our Terraform infrastructure into two separate stacks:
