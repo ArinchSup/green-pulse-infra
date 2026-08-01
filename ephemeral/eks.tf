@@ -3,7 +3,7 @@ module "eks" {
   version = "~> 21.0"
 
   name               = "${local.name}-cluster"
-  kubernetes_version = "1.33"
+  kubernetes_version = "1.36"
 
   endpoint_public_access                   = true
   enable_cluster_creator_admin_permissions = true
@@ -28,5 +28,8 @@ module "eks" {
     vpc-cni = {
       before_compute = true
     }
+  }
+  upgrade_policy = {
+    support_type = "STANDARD"
   }
 }
