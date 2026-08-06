@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-service-config
+data:
+  LOG_LEVEL: "info"
+  BACKEND_URL: "http://backend:8080"
