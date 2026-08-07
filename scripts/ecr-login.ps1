@@ -10,6 +10,8 @@ if ($LASTEXITCODE -ne 0) { throw "Docker Desktop is not running" }
 # NOTE: --password-stdin is the documented form, but PowerShell 5.1 corrupts
 # the token through the pipe, so docker stores nothing and pushes fail with
 # "no basic auth credentials". Passing via variable is the workaround.
+
+#you will see --password and want to "fix" it back to stdin. it will break.
 $pw = aws ecr get-login-password --region $region
 if ($LASTEXITCODE -ne 0) { throw "Failed to get ECR token" }
 
