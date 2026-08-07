@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: backend
-        image: nginxinc/nginx-unprivileged:1.29-alpine
+        image: 465853822810.dkr.ecr.ap-southeast-1.amazonaws.com/green-pulse/backend:placeholder
         ports:
         - containerPort: 8080
         envFrom:

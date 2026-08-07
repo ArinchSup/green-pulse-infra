@@ -1,0 +1,70 @@
+# Stop execution immediately if any command fails
+$ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+# Load secret variables from your uncommitted local file (dot-sourced)
+. .\scripts\secrets.local.ps1
+
+# Spin up ephemeral infrastructure
+Set-Location .\ephemeral
+terraform apply -auto-approve
+if ($LASTEXITCODE -ne 0) { throw "terraform apply failed" }
+Set-Location ..
+
+# Extract dynamic output parameters from Terraform
+Write-Host "Extracting cluster parameters from Terraform..." -ForegroundColor Cyan
+$clusterName = terraform -chdir=ephemeral output -raw cluster_name
+$vpcId       = terraform -chdir=ephemeral output -raw vpc_id
+
+# Connect kubectl to the new cluster dynamically
+aws eks update-kubeconfig --name $clusterName --region ap-southeast-1
+if ($LASTEXITCODE -ne 0) { throw "Failed to update kubeconfig" }
+
+# Wait for EC2 worker nodes to fully boot up and register as Ready 
+Write-Host "Waiting for cluster worker nodes to become Ready..." -ForegroundColor Cyan
+kubectl wait --for=condition=Ready nodes --all --timeout=300s
+if ($LASTEXITCODE -ne 0) { throw "nodes never became Ready" }
+
+# Idempotently apply backend secrets
+kubectl create secret generic backend-secrets `
+  --from-literal=SUPABASE_URL=$env:SUPABASE_URL `
+  --from-literal=SUPABASE_KEY=$env:SUPABASE_KEY `
+  --dry-run=client -o yaml | kubectl apply -f -
+if ($LASTEXITCODE -ne 0) { throw "Failed to apply backend secrets" }
+
+# Idempotently apply AI service secrets
+kubectl create secret generic ai-service-secrets `
+  --from-literal=FINNHUB_API_KEY=$env:FINNHUB_API_KEY `
+  --from-literal=ANTHROPIC_API_KEY=$env:ANTHROPIC_API_KEY `
+  --dry-run=client -o yaml | kubectl apply -f -
+if ($LASTEXITCODE -ne 0) { throw "Failed to apply AI service secrets" }
+
+# Helm: Add repository safely & Update
+Write-Host "Updating Helm repositories..." -ForegroundColor Cyan
+helm repo add eks https://aws.github.io/eks-charts --force-update
+helm repo update
+if ($LASTEXITCODE -ne 0) { throw "Helm repo update failed" }
+
+# Helm: Install/Upgrade AWS Load Balancer Controller using dynamic inputs
+Write-Host "Installing AWS Load Balancer Controller via Helm..." -ForegroundColor Cyan
+helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller `
+  --namespace kube-system `
+  --set clusterName=$clusterName `
+  --set serviceAccount.create=true `
+  --set serviceAccount.name=aws-load-balancer-controller `
+  --set region=ap-southeast-1 `
+  --set vpcId=$vpcId
+if ($LASTEXITCODE -ne 0) { throw "AWS Load Balancer Controller installation failed" }
+
+# Wait for the controller Pod to be Available before applying Ingress rules
+Write-Host "Waiting for AWS Load Balancer Controller deployment..." -ForegroundColor Cyan
+kubectl wait --for=condition=Available deployment/aws-load-balancer-controller -n kube-system --timeout=300s
+if ($LASTEXITCODE -ne 0) { throw "LB controller never became Available" }
+
+# Deploy Kubernetes manifests
+Write-Host "Deploying Kubernetes manifests..." -ForegroundColor Cyan
+kubectl apply -f k8s/ -R
+if ($LASTEXITCODE -ne 0) { throw "Kubectl apply manifests failed" }
+
+# Verify deployment status
+kubectl get pods
