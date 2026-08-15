@@ -4,26 +4,36 @@ $ErrorActionPreference = "Stop"
 
 # Load secret variables from your uncommitted local file (dot-sourced)
 . .\scripts\secrets.local.ps1
+#####################################################################################################
+
 
 # Spin up ephemeral infrastructure
 Set-Location .\ephemeral
 terraform apply -auto-approve
 if ($LASTEXITCODE -ne 0) { throw "terraform apply failed" }
 Set-Location ..
+#####################################################################################################
+
 
 # Extract dynamic output parameters from Terraform
 Write-Host "Extracting cluster parameters from Terraform..." -ForegroundColor Cyan
 $clusterName = terraform -chdir=ephemeral output -raw cluster_name
 $vpcId       = terraform -chdir=ephemeral output -raw vpc_id
+#####################################################################################################
+
 
 # Connect kubectl to the new cluster dynamically
 aws eks update-kubeconfig --name $clusterName --region ap-southeast-1
 if ($LASTEXITCODE -ne 0) { throw "Failed to update kubeconfig" }
+#####################################################################################################
+
 
 # Wait for EC2 worker nodes to fully boot up and register as Ready 
 Write-Host "Waiting for cluster worker nodes to become Ready..." -ForegroundColor Cyan
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
 if ($LASTEXITCODE -ne 0) { throw "nodes never became Ready" }
+#####################################################################################################
+
 
 # Idempotently apply backend secrets
 kubectl create secret generic backend-secrets `
@@ -38,10 +48,13 @@ kubectl create secret generic ai-service-secrets `
   --from-literal=ANTHROPIC_API_KEY=$env:ANTHROPIC_API_KEY `
   --dry-run=client -o yaml | kubectl apply -f -
 if ($LASTEXITCODE -ne 0) { throw "Failed to apply AI service secrets" }
+#####################################################################################################
+
 
 # Helm: Add repository safely & Update
 Write-Host "Updating Helm repositories..." -ForegroundColor Cyan
 helm repo add eks https://aws.github.io/eks-charts --force-update
+helm repo add nvdp https://nvidia.github.io/k8s-device-plugin --force-update
 helm repo update
 if ($LASTEXITCODE -ne 0) { throw "Helm repo update failed" }
 
@@ -55,6 +68,15 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set region=ap-southeast-1 `
   --set vpcId=$vpcId
 if ($LASTEXITCODE -ne 0) { throw "AWS Load Balancer Controller installation failed" }
+
+# Helm: Install/Upgrade NVIDIA Device Plugin
+Write-Host "Installing NVIDIA Device Plugin via Helm..." -ForegroundColor Cyan
+helm upgrade --install nvidia-device-plugin nvdp/nvidia-device-plugin `
+  --namespace kube-system
+if ($LASTEXITCODE -ne 0) { throw "NVIDIA Device Plugin installation failed" }
+#####################################################################################################
+
+
 
 # Wait for the controller Pod to be Available before applying Ingress rules
 Write-Host "Waiting for AWS Load Balancer Controller deployment..." -ForegroundColor Cyan

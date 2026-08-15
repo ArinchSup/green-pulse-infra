@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gpu-test
+  template:
+    metadata:
+      labels:
+        app: gpu-test
+    spec:
+      nodeSelector:
+        workload: gpu
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+      - name: gpu-test
+        image: nvidia/cuda:12.4.0-base-ubuntu22.04
+        command: ["sleep", "3600"]
+      resources:
+        limits:
+          nvidia.com/gpu: 1
