@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: inference
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+    spec:
+      serviceAccountName: inference
+      nodeSelector:
+        workload: gpu
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      volumes:
+        - name: weights
+          emptyDir: {}
+      initContainers:
+        - name: fetch-weights
+          image: amazon/aws-cli:latest
+          command:
+            - sh
+            - -c
+            - aws s3 sync s3://green-pulse-model-weights-465853822810/ /weights/
+          volumeMounts:
+            - mountPath: /weights
+              name: weights
+      containers:
+        - name: inference
+          image: nvidia/cuda:12.4.0-base-ubuntu22.04
+          command: ["sleep", "3600"]
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - mountPath: /weights
+              name: weights

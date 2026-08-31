@@ -8,7 +8,7 @@ resource "aws_ecr_repository" "backend" {
 }
 
 resource "aws_ecr_repository" "ai_service" {
-  name                 = "green-pulse/ai_service"
+  name                 = "green-pulse/ai-service"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
