@@ -15,8 +15,11 @@ aws ec2 describe-addresses --region $region --query "Addresses[].PublicIp" --out
 Write-Host "Load balancers:" -ForegroundColor Cyan
 aws elbv2 describe-load-balancers --region $region --query "LoadBalancers[].LoadBalancerName" --output text
 
-Write-Host "Target groups:" -ForegroundColor Cyan
+Write-Host "Target groups (all):" -ForegroundColor Cyan
 aws elbv2 describe-target-groups --region $region --query "TargetGroups[].TargetGroupName" --output text
+
+Write-Host "Target groups (green-pulse VPC):" -ForegroundColor Cyan
+aws elbv2 describe-target-groups --region $region --query "TargetGroups[?starts_with(TargetGroupName,'k8s-')].TargetGroupName" --output text
 
 Write-Host "green-pulse VPC:" -ForegroundColor Cyan
 aws ec2 describe-vpcs --region $region --filters "Name=tag:Name,Values=green-pulse-vpc" --query "Vpcs[].VpcId" --output text

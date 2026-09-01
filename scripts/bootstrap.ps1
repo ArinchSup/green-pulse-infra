@@ -74,6 +74,8 @@ Write-Host "Installing NVIDIA Device Plugin via Helm..." -ForegroundColor Cyan
 helm upgrade --install nvidia-device-plugin nvdp/nvidia-device-plugin `
   --namespace kube-system
 if ($LASTEXITCODE -ne 0) { throw "NVIDIA Device Plugin installation failed" }
+
+
 #####################################################################################################
 
 
@@ -82,6 +84,24 @@ if ($LASTEXITCODE -ne 0) { throw "NVIDIA Device Plugin installation failed" }
 Write-Host "Waiting for AWS Load Balancer Controller deployment..." -ForegroundColor Cyan
 kubectl wait --for=condition=Available deployment/aws-load-balancer-controller -n kube-system --timeout=300s
 if ($LASTEXITCODE -ne 0) { throw "LB controller never became Available" }
+
+#####################################################################################################
+# Helm: Install Karpenter
+$queueName = terraform -chdir=ephemeral output -raw karpenter_queue_name
+
+helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter `
+  --version 1.13.0 `
+  --namespace kube-system `
+  --set "settings.clusterName=$clusterName" `
+  --set "settings.interruptionQueue=$queueName"
+if ($LASTEXITCODE -ne 0) { throw "Karpenter install failed" }
+
+kubectl wait --for=condition=Available deployment/karpenter -n kube-system --timeout=300s
+if ($LASTEXITCODE -ne 0) { throw "Karpenter never became Available" }
+
+kubectl apply -f karpenter/
+if ($LASTEXITCODE -ne 0) { throw "Karpenter NodePool apply failed" }
+
 
 # Deploy Kubernetes manifests
 Write-Host "Deploying Kubernetes manifests..." -ForegroundColor Cyan

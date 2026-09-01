@@ -1,4 +1,7 @@
 module "eks" {
+  node_security_group_tags = {
+    "karpenter.sh/discovery" = "${local.name}-cluster"
+  }
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
 
@@ -21,26 +24,7 @@ module "eks" {
       ami_type = "AL2023_x86_64_STANDARD"
     }
 
-    gpu = {
-      instance_types = ["g4dn.xlarge"]
-      ami_type       = "AL2023_x86_64_NVIDIA"
 
-      min_size     = 0
-      max_size     = 1
-      desired_size = 0
-
-      labels = {
-        workload = "gpu"
-      }
-
-      taints = {
-        gpu = {
-          key    = "nvidia.com/gpu"
-          value  = "true"
-          effect = "NO_SCHEDULE"
-        }
-      }
-    }
   }
   addons = {
     coredns                = {}
