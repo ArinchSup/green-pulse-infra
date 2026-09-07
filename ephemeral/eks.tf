@@ -30,6 +30,7 @@ module "eks" {
     coredns                = {}
     eks-pod-identity-agent = {}
     kube-proxy             = {}
+    aws-ebs-csi-driver     = {}
     vpc-cni = {
       before_compute = true
     }

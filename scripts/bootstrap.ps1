@@ -102,6 +102,16 @@ if ($LASTEXITCODE -ne 0) { throw "Karpenter never became Available" }
 kubectl apply -f karpenter/
 if ($LASTEXITCODE -ne 0) { throw "Karpenter NodePool apply failed" }
 
+# Helm: Add prometheus
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
+helm repo update
+
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
+  --namespace monitoring `
+  --create-namespace `
+  --values monitoring/values.yaml `
+  --set grafana.adminPassword=$env:GRAFANA_ADMIN_PASSWORD
+if ($LASTEXITCODE -ne 0) { throw "monitoring install failed" }
 
 # Deploy Kubernetes manifests
 Write-Host "Deploying Kubernetes manifests..." -ForegroundColor Cyan

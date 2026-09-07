@@ -3,7 +3,7 @@ module "karpenter" {
   node_iam_role_use_name_prefix = false
   source                        = "terraform-aws-modules/eks/aws//modules/karpenter"
   version                       = "~> 21.0"
-  enable_inline_policy = true
+  enable_inline_policy          = true
 
   cluster_name = module.eks.cluster_name
 
