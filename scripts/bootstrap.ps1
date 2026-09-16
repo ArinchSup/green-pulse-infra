@@ -136,10 +136,5 @@ kubectl label secret argocd-repo-green-pulse-infra -n argocd argocd.argoproj.io/
 kubectl apply -f gitops/apps/
 if ($LASTEXITCODE -ne 0) { throw "ArgoCD Application apply failed" }
 
-# Deploy Kubernetes manifests
-Write-Host "Deploying Kubernetes manifests..." -ForegroundColor Cyan
-kubectl apply -f k8s/ -R
-if ($LASTEXITCODE -ne 0) { throw "Kubectl apply manifests failed" }
-
 # Verify deployment status
 kubectl get pods
