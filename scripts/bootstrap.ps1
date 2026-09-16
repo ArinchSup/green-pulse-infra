@@ -113,6 +113,29 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
   --set grafana.adminPassword=$env:GRAFANA_ADMIN_PASSWORD
 if ($LASTEXITCODE -ne 0) { throw "monitoring install failed" }
 
+# ArgoCD
+helm repo add argo https://argoproj.github.io/argo-helm --force-update
+helm upgrade --install argocd argo/argo-cd `
+  --namespace argocd --create-namespace `
+  --set configs.params."server\.insecure"=true
+if ($LASTEXITCODE -ne 0) { throw "ArgoCD install failed" }
+
+kubectl wait --for=condition=Available deployment/argocd-server -n argocd --timeout=300s
+if ($LASTEXITCODE -ne 0) { throw "ArgoCD never became Available" }
+
+kubectl create secret generic argocd-repo-green-pulse-infra `
+  --namespace argocd `
+  --from-literal=type=git `
+  --from-literal=url=git@github.com:ArinchSup/green-pulse-infra.git `
+  --from-file=sshPrivateKey=$env:ARGOCD_DEPLOY_KEY_PATH `
+  --dry-run=client -o yaml | kubectl apply -f -
+if ($LASTEXITCODE -ne 0) { throw "ArgoCD repo secret failed" }
+
+kubectl label secret argocd-repo-green-pulse-infra -n argocd argocd.argoproj.io/secret-type=repository --overwrite
+
+kubectl apply -f gitops/apps/
+if ($LASTEXITCODE -ne 0) { throw "ArgoCD Application apply failed" }
+
 # Deploy Kubernetes manifests
 Write-Host "Deploying Kubernetes manifests..." -ForegroundColor Cyan
 kubectl apply -f k8s/ -R

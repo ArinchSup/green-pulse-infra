@@ -1,15 +1,17 @@
 # green-pulse-infra
 
-Infrastructure for Green Pulse — a stock analysis platform with AI-powered
-news analysis. Production-grade EKS on AWS, built to be destroyed and
+Infrastructure for Green Pulse — AI-powered
+quantitative agent. Production-grade EKS on AWS, built to be destroyed and
 rebuilt on demand.
 
 ## Architecture
 The main core concept of this architecture is to be able to destroy the instance and rebuild in ~25 minutes. Thus, we use the ephemeral and persistent stack which for ephemeral we can destroy it when we dont use. The infrastructure has 2 Azs, private worker node, single NAT, single ALB ingress,GPU nodes (g4dn/g5/g6 .xlarge, spot-first with on-demand fallback) are provisioned on demand by Karpenter when an inference pod is scheduled, and removed automatically once idle.
 
 ## Status
-- Scope: This project is built for the university senior project, thus the goal is to build the production grade infrastructure while in the budget of students.
-- Status: the place holder images or the production is still missing out as the production itself is in the process of reworking, and the CI/CD is still not done properly as now we are using the shell scripts and manualy start the infrastructure, and the HTTP only with no domain yet, as it will cost a lot and we will get ceritificte for HTTPS and the domain name as the product are done and it can pair with the infrastructure properly.
+- **Scope:** university senior project — production-grade infrastructure on a student budget.
+- **Application:** running placeholder images; the app team is reworking the services.
+- **Networking:** HTTP only, no domain or TLS yet.
+- **CI/CD:** deferred — bring-up and teardown are manual PowerShell scripts.
 
 ## Repository layout
 | Path | Purpose |
@@ -63,8 +65,10 @@ $env:GRAFANA_ADMIN_PASSWORD = "..."
 ```
 
 ## Cost
-The cost is around ~$0.30/hr, ~$190-215 always-on, ~$15-30/month at low usage.
-Most of the price came from the GPU nodes run only while inference is active, NAT gateway (single), single ingress.
+The cluster runs at roughly $0.30/hr about $190-215/month if left always-on,
+but $15-30/month in practice with teardown discipline. The main contributors are
+the EKS control plane, the general node, and the single NAT gateway. GPU nodes
+bill separately and only while inference is running.
 
 ## Design decisions
 - [ADR-0001](docs/adrs/0001-split-terraform-state.md) — persistent vs ephemeral stacks
@@ -72,4 +76,4 @@ Most of the price came from the GPU nodes run only while inference is active, NA
 - [ADR-0003](docs/adrs/0003-native-s3-state-locking.md) — Native S3 state locking
 - [ADR-0004](docs/adrs/0004-declare-eks-core-addons-explicitly.md) — EKS core add-ons
 - [ADR-0005](docs/adrs/0005-kubernetes-version-policy.md) — pinning standard support
-- [ADR-0006](docs/adr/0006-pod-identity-over-IRSA.md) — Pod identity over IRSA
+- [ADR-0006](docs/adrs/0006-pod-identity-over-IRSA.md) — Pod identity over IRSA
