@@ -115,6 +115,14 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
   --set grafana.adminPassword=$env:GRAFANA_ADMIN_PASSWORD
 if ($LASTEXITCODE -ne 0) { throw "monitoring install failed" }
 
+# ESO
+helm repo add external-secrets https://charts.external-secrets.io --force-update
+helm upgrade --install external-secrets external-secrets/external-secrets `
+  --namespace external-secrets --create-namespace
+if ($LASTEXITCODE -ne 0) { throw "ESO install failed" }
+
+kubectl wait --for=condition=Available deployment/external-secrets -n external-secrets --timeout=300s
+
 # ArgoCD
 helm repo add argo https://argoproj.github.io/argo-helm --force-update
 helm upgrade --install argocd argo/argo-cd `
