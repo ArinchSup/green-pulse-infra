@@ -97,6 +97,8 @@ helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter `
 if ($LASTEXITCODE -ne 0) { throw "Karpenter install failed" }
 
 kubectl wait --for=condition=Available deployment/karpenter -n kube-system --timeout=300s
+kubectl wait --for condition=established --timeout=60s crd/nodepools.karpenter.sh
+kubectl wait --for condition=established --timeout=60s crd/ec2nodeclasses.karpenter.k8s.aws
 if ($LASTEXITCODE -ne 0) { throw "Karpenter never became Available" }
 
 kubectl apply -f karpenter/
@@ -106,7 +108,7 @@ if ($LASTEXITCODE -ne 0) { throw "Karpenter NodePool apply failed" }
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
 helm repo update
 
-helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
+helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
   --namespace monitoring `
   --create-namespace `
   --values monitoring/values.yaml `
