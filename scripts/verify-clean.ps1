@@ -15,14 +15,20 @@ aws ec2 describe-addresses --region $region --query "Addresses[].PublicIp" --out
 Write-Host "Load balancers:" -ForegroundColor Cyan
 aws elbv2 describe-load-balancers --region $region --query "LoadBalancers[].LoadBalancerName" --output text
 
-Write-Host "Target groups (all):" -ForegroundColor Cyan
-aws elbv2 describe-target-groups --region $region --query "TargetGroups[].TargetGroupName" --output text
-
 Write-Host "Target groups (green-pulse VPC):" -ForegroundColor Cyan
 aws elbv2 describe-target-groups --region $region --query "TargetGroups[?starts_with(TargetGroupName,'k8s-')].TargetGroupName" --output text
 
 Write-Host "green-pulse VPC:" -ForegroundColor Cyan
 aws ec2 describe-vpcs --region $region --filters "Name=tag:Name,Values=green-pulse-vpc" --query "Vpcs[].VpcId" --output text
+
+Write-Host "Unattached EBS volumes:" -ForegroundColor Cyan
+aws ec2 describe-volumes --region $region --filters "Name=status,Values=available" --query "Volumes[].VolumeId" --output text
+
+Write-Host "Orphaned ENIs:" -ForegroundColor Cyan
+aws ec2 describe-network-interfaces --region $region --filters "Name=status,Values=available" --query "NetworkInterfaces[].NetworkInterfaceId" --output text
+
+Write-Host "Orphaned k8s security groups:" -ForegroundColor Cyan
+aws ec2 describe-security-groups --region $region --query "SecurityGroups[?starts_with(GroupName,'k8s-')].GroupId" --output text
 
 Write-Host "`n=== SHOULD STILL EXIST ===" -ForegroundColor Yellow
 
