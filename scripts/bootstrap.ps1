@@ -35,12 +35,12 @@ if ($LASTEXITCODE -ne 0) { throw "nodes never became Ready" }
 #####################################################################################################
 
 
-# Idempotently apply backend secrets
-kubectl create secret generic backend-secrets `
-  --from-literal=SUPABASE_URL=$env:SUPABASE_URL `
-  --from-literal=SUPABASE_KEY=$env:SUPABASE_KEY `
-  --dry-run=client -o yaml | kubectl apply -f -
-if ($LASTEXITCODE -ne 0) { throw "Failed to apply backend secrets" }
+# Idempotently apply backend secrets dont use anymore the argoCD steal the job
+#kubectl create secret generic backend-secrets `
+#  --from-literal=SUPABASE_URL=$env:SUPABASE_URL `
+#  --from-literal=SUPABASE_KEY=$env:SUPABASE_KEY `
+#  --dry-run=client -o yaml | kubectl apply -f -
+#if ($LASTEXITCODE -ne 0) { throw "Failed to apply backend secrets" }
 
 # Idempotently apply AI service secrets
 kubectl create secret generic ai-service-secrets `
