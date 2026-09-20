@@ -1,6 +1,6 @@
 resource "aws_ecr_repository" "backend" {
   name                 = "green-pulse/backend"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -9,7 +9,7 @@ resource "aws_ecr_repository" "backend" {
 
 resource "aws_ecr_repository" "ai_service" {
   name                 = "green-pulse/ai-service"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true

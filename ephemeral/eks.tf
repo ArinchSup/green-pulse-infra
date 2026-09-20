@@ -3,7 +3,7 @@ module "eks" {
     "karpenter.sh/discovery" = "${local.name}-cluster"
   }
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 21.0"
+  version = "21.25.0"
 
   name               = "${local.name}-cluster"
   kubernetes_version = "1.36"
