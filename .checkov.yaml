@@ -9,3 +9,7 @@ skip-check:
   - CKV2_AWS_62
   # KMS default encryption (AES256) is sufficient
   - CKV_AWS_145
+    # Weights bucket holds regenerable model artifacts; CRR doubles storage cost
+  # to protect against region loss, which is not a meaningful risk for a
+  # student project with reproducible inputs
+  - CKV_AWS_144
