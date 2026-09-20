@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 # 1. Disarm GitOps first — selfHeal would recreate anything we delete
 kubectl delete application --all -n argocd --ignore-not-found
+kubectl delete namespace monitoring --ignore-not-found --timeout=180s
 
 # 2. Ingress → ALB
 kubectl delete ingress --all --all-namespaces --ignore-not-found
