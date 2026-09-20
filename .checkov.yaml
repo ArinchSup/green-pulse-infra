@@ -7,3 +7,5 @@ skip-check:
     comment: "Bucket access is already auditted by the cloudtrail"
   - id: CKV2_AWS_62
     comment: "Ensure S3 buckets should have event notifications enabled which is not security concenred so its skipable"
+  - id: CKV_AWS_145
+    comment: "AES256 by default, CMK adds cost and key management for marginal benefit here."
