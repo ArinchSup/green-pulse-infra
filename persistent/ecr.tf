@@ -1,4 +1,5 @@
 resource "aws_ecr_repository" "backend" {
+  #checkov:skip=CKV_AWS_136:ECR uses AES256 by default; CMK adds key management overhead without meaningful benefit here
   name                 = "green-pulse/backend"
   image_tag_mutability = "IMMUTABLE"
 

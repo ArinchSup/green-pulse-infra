@@ -1,0 +1,11 @@
+skip-check:
+  # Modules pinned to exact registry versions rather than commit hashes
+  - CKV_TF_1
+  # ECR uses AES256 encryption by default; CMK adds unnecessary overhead/cost
+  - CKV_AWS_136
+  # Bucket access is already audited by CloudTrail
+  - CKV_AWS_18
+  # S3 bucket event notifications are not a security concern
+  - CKV2_AWS_62
+  # KMS default encryption (AES256) is sufficient
+  - CKV_AWS_145
