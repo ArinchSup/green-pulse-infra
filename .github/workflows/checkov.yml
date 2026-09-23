@@ -2,7 +2,7 @@ name: checkov
 on: [push, pull_request]
 jobs:
   scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: bridgecrewio/checkov-action@master
@@ -10,4 +10,3 @@ jobs:
           directory: .
           framework: terraform
           config_file: .checkov.yaml
-          soft_fail: true
