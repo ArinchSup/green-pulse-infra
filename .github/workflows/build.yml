@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Show OIDC subject
+        run: echo "${{ github.repository }} / ${{ github.ref }}"
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::465853822810:role/green-pulse-github-ecr-push
