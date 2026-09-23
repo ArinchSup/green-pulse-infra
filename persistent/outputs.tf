@@ -14,3 +14,7 @@ output "weights_bucket_name" {
 output "weights_bucket_arn" {
   value = aws_s3_bucket.weights.arn
 }
+
+output "github_ecr_push_arn" {
+  value = aws_iam_role.github_ecr_push.arn
+}
