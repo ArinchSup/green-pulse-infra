@@ -33,7 +33,7 @@ Write-Host "Waiting for cluster worker nodes to become Ready..." -ForegroundColo
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
 if ($LASTEXITCODE -ne 0) { throw "nodes never became Ready" }
 #####################################################################################################
-
+#replace as the ackend done and the key already up in SSM
 
 # Idempotently apply backend secrets dont use anymore the argoCD steal the job
 #kubectl create secret generic backend-secrets `
@@ -42,12 +42,12 @@ if ($LASTEXITCODE -ne 0) { throw "nodes never became Ready" }
 #  --dry-run=client -o yaml | kubectl apply -f -
 #if ($LASTEXITCODE -ne 0) { throw "Failed to apply backend secrets" }
 
-# Idempotently apply AI service secrets
-kubectl create secret generic ai-service-secrets `
-  --from-literal=FINNHUB_API_KEY=$env:FINNHUB_API_KEY `
-  --from-literal=ANTHROPIC_API_KEY=$env:ANTHROPIC_API_KEY `
-  --dry-run=client -o yaml | kubectl apply -f -
-if ($LASTEXITCODE -ne 0) { throw "Failed to apply AI service secrets" }
+# Idempotently apply AI service secrets 
+#kubectl create secret generic ai-service-secrets `
+#  --from-literal=FINNHUB_API_KEY=$env:FINNHUB_API_KEY `
+#  --from-literal=ANTHROPIC_API_KEY=$env:ANTHROPIC_API_KEY `
+#  --dry-run=client -o yaml | kubectl apply -f -
+#if ($LASTEXITCODE -ne 0) { throw "Failed to apply AI service secrets" }
 #####################################################################################################
 
 
