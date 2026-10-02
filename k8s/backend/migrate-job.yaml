@@ -19,7 +19,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          image: 465853822810.dkr.ecr.ap-southeast-1.amazonaws.com/greenpulse/backend:6a172325bc9ad143afe3c53e45ba1781633de2a3
+          image: 465853822810.dkr.ecr.ap-southeast-1.amazonaws.com/green-pulse/backend:6a172325bc9ad143afe3c53e45ba1781633de2a3
           args: ["migrate"]
           envFrom:
             - secretRef:
