@@ -16,7 +16,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 65532
         seccompProfile:
-          type: Runtimedefault
+          type: RuntimeDefault
       containers:
         - name: migrate
           image: 465853822810.dkr.ecr.ap-southeast-1.amazonaws.com/greenpulse/backend:6a172325bc9ad143afe3c53e45ba1781633de2a3
