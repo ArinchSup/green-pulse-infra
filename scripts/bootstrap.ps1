@@ -143,7 +143,8 @@ if ($LASTEXITCODE -ne 0) { throw "ArgoCD repo secret failed" }
 
 kubectl label secret argocd-repo-green-pulse-infra -n argocd argocd.argoproj.io/secret-type=repository --overwrite
 
-kubectl apply -f gitops/apps/
+#kubectl apply -f gitops/apps/
+kubectl apply -f gitops/root-app.yaml
 if ($LASTEXITCODE -ne 0) { throw "ArgoCD Application apply failed" }
 
 # Verify deployment status
