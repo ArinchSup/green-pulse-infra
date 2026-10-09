@@ -61,6 +61,7 @@ if ($LASTEXITCODE -ne 0) { throw "Helm repo update failed" }
 # Helm: Install/Upgrade AWS Load Balancer Controller using dynamic inputs
 Write-Host "Installing AWS Load Balancer Controller via Helm..." -ForegroundColor Cyan
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller `
+  --version 3.6.0 `
   --namespace kube-system `
   --set clusterName=$clusterName `
   --set serviceAccount.create=true `
@@ -72,6 +73,7 @@ if ($LASTEXITCODE -ne 0) { throw "AWS Load Balancer Controller installation fail
 # Helm: Install/Upgrade NVIDIA Device Plugin
 Write-Host "Installing NVIDIA Device Plugin via Helm..." -ForegroundColor Cyan
 helm upgrade --install nvidia-device-plugin nvdp/nvidia-device-plugin `
+  --version 0.20.1 `
   --namespace kube-system
 if ($LASTEXITCODE -ne 0) { throw "NVIDIA Device Plugin installation failed" }
 
@@ -109,6 +111,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack `
+  --version 92.2.0 `
   --namespace monitoring `
   --create-namespace `
   --values monitoring/values.yaml `
@@ -118,6 +121,7 @@ if ($LASTEXITCODE -ne 0) { throw "monitoring install failed" }
 # ESO
 helm repo add external-secrets https://charts.external-secrets.io --force-update
 helm upgrade --install external-secrets external-secrets/external-secrets `
+  --version 2.12.0 `
   --namespace external-secrets --create-namespace
 if ($LASTEXITCODE -ne 0) { throw "ESO install failed" }
 
@@ -126,6 +130,7 @@ kubectl wait --for=condition=Available deployment/external-secrets -n external-s
 # ArgoCD
 helm repo add argo https://argoproj.github.io/argo-helm --force-update
 helm upgrade --install argocd argo/argo-cd `
+  --version 10.10.1 `
   --namespace argocd --create-namespace `
   --set configs.params."server\.insecure"=true
 if ($LASTEXITCODE -ne 0) { throw "ArgoCD install failed" }
