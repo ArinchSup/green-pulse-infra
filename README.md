@@ -1,79 +1,149 @@
 # green-pulse-infra
 
-Infrastructure for Green Pulse — AI-powered
-quantitative agent. Production-grade EKS on AWS, built to be destroyed and
-rebuilt on demand.
+Infrastructure for **Green Pulse**, an AI-powered quantitative stock assistant.
+Production-grade Amazon EKS on AWS, built to be destroyed when idle and rebuilt
+from code on demand.
+
+## Highlights
+
+- **Rebuilds from nothing with one script.** `scripts/bootstrap.ps1` brings the
+  whole platform up in about 25 minutes, and `scripts/teardown.ps1` removes it.
+  Data, images and configuration all live outside the cluster, so it is destroyed
+  whenever it isn't in use.
+- **No long-lived AWS credentials in the cluster or in CI.** Pods get short-lived
+  AWS credentials through EKS Pod Identity, and CI authenticates to AWS through
+  GitHub OIDC.
+- **GitOps with Argo CD.** The cluster continuously matches what's in Git and
+  reverts any change made by hand.
+- **Secrets never touch Git.** They're stored in AWS SSM Parameter Store and
+  copied into the cluster by External Secrets Operator.
+- **GPU on demand.** Karpenter launches GPU nodes only when a GPU workload needs
+  one (spot first, with on-demand fallback) and removes them when idle. This is
+  the main cost saving, at the price of a cold start.
+- **Security gates in CI.** Gitleaks and Checkov scan this repository. Trivy scans
+  every application image before it's pushed, and has already blocked a build
+  containing 17 known vulnerabilities.
 
 ## Architecture
-The main core concept of this architecture is to be able to destroy the instance and rebuild in ~25 minutes. Thus, we use the ephemeral and persistent stack which for ephemeral we can destroy it when we dont use. The infrastructure has 2 Azs, private worker node, single NAT, single ALB ingress,GPU nodes (g4dn/g5/g6 .xlarge, spot-first with on-demand fallback) are provisioned on demand by Karpenter when an inference pod is scheduled, and removed automatically once idle.
+
+Two Terraform stacks with separate state:
+
+- **persistent** — never destroyed: the container registry (ECR), the
+  model-weights bucket and the CI identity.
+- **ephemeral** — destroyed freely: the network and the EKS cluster
+  (Kubernetes 1.36) with its add-ons.
+
+The VPC spans two availability zones. Worker nodes run in private subnets; only
+the Application Load Balancer is public, and a single NAT gateway handles
+outbound traffic as a deliberate cost trade-off. The backend reads from an
+external Postgres database (Supabase), so tearing down the cluster never touches
+application data. The application code lives in a separate, private repository.
 
 ## Status
-- **Scope:** university senior project — production-grade infrastructure on a student budget.
-- **Application:** running placeholder images; the app team is reworking the services.
-- **Networking:** HTTP only, no domain or TLS yet.
-- **CI/CD:** deferred — bring-up and teardown are manual PowerShell scripts.
+
+- **Scope:** a university senior project — production-grade infrastructure on a
+  student budget.
+- **Application:** a backend prototype has run end to end, through the load
+  balancer to the database and back. The production backend is in progress; the
+  frontend isn't built yet.
+- **Networking:** HTTP only, with no domain or TLS yet.
+- **CI/CD:** deployment through Argo CD (GitOps). This repository's CI runs
+  Gitleaks and Checkov. The application's CI scans images with Trivy and pushes
+  them to ECR using GitHub OIDC.
 
 ## Repository layout
+
 | Path | Purpose |
 |---|---|
-| `persistent/` | The stack the will never destroyed |
-| `ephemeral/` | The stack that can be destroyed and revuild again |
-| `k8s/` | Kubernetes config |
-| `karpenter/` | Node provisioner |
-| `monitoring/` | Prometheus/Grafana |
-| `scripts/` | Use for running up or down the infrastructure |
-| `tests/` | test inference subject |
-| `docs/adr/` | decisions of architecture |
+| `persistent/` | Terraform stack that is never destroyed |
+| `ephemeral/` | Terraform stack that is destroyed and rebuilt freely |
+| `k8s/` | Kubernetes manifests, deployed by Argo CD |
+| `gitops/` | Argo CD applications (app-of-apps) |
+| `karpenter/` | GPU node provisioning rules |
+| `monitoring/` | Prometheus and Grafana settings |
+| `scripts/` | Bring-up, teardown and cleanup verification |
+| `tests/` | Manual GPU smoke tests |
+| `.github/workflows/` | CI scans |
+| `docs/APP-CONTRACT.md` | Contract between the platform and the application |
+| `docs/adrs/` | Architecture Decision Records |
 
-## Developer Security Setup (One-Time Setup)
+## Developer security setup (one time)
 
-To prevent accidental leaks of API keys or secrets, this repository uses **Gitleaks** with shared pre-commit hooks.
+To prevent accidental leaks of API keys or secrets, this repository uses
+**Gitleaks** with shared pre-commit hooks.
 
 ### 1. Install Gitleaks
-Make sure `gitleaks` is installed on your system:
+
 * **Mac (Homebrew):** `brew install gitleaks`
 * **Windows (Winget):** `winget install gitleaks`
 * **Linux:** `sudo snap install gitleaks`
 
-### 2. Enable Shared Git Hooks
-After cloning the repository, run this command in your terminal **once** to enable local security checks:
+### 2. Enable the shared Git hooks
+
+After cloning, run this **once**:
 
 ```bash
 git config core.hooksPath .githooks
 ```
+
 ## Running it
+
 ### Prerequisites
-1. AWS CLI v2, Terraform ≥1.10, kubectl, Helm, an AWS profile with admin, Docker Desktop for ECR pushes.
-2. Updates the secrets: in scripts folders add the secrets.local.ps1 then add
-```
-$env:SUPABASE_URL      = "..."
-$env:SUPABASE_KEY      = "..."
-$env:FINNHUB_API_KEY   = "..."
-$env:ANTHROPIC_API_KEY = "..."
+
+1. AWS CLI v2, Terraform ≥ 1.10, kubectl and Helm, plus an AWS profile with
+   administrator access.
+2. A read-only GitHub deploy key, so Argo CD can read this repository.
+3. Application secrets stored once in SSM Parameter Store, under
+   `/green-pulse/<service>/<KEY>` — for example `/green-pulse/backend/DATABASE_URL`.
+4. A local, git-ignored file `scripts/secrets.local.ps1` containing:
+
+```powershell
 $env:GRAFANA_ADMIN_PASSWORD = "..."
+$env:ARGOCD_DEPLOY_KEY_PATH = "C:\path\to\argocd-deploy-key"
 ```
 
+Run the scripts from the repository root.
+
 ### Bring up
-```bash
-./scripts/bootstrap.ps1
+
+```powershell
+.\scripts\bootstrap.ps1
 ```
 
 ### Tear down
-```bash
-./scripts/teardown.ps1
-./scripts/verify-clean.ps1
+
+```powershell
+.\scripts\teardown.ps1
+.\scripts\verify-clean.ps1
 ```
 
+`verify-clean.ps1` checks AWS for anything still billing after teardown.
+
 ## Cost
-The cluster runs at roughly $0.30/hr about $190-215/month if left always-on,
-but $15-30/month in practice with teardown discipline. The main contributors are
-the EKS control plane, the general node, and the single NAT gateway. GPU nodes
-bill separately and only while inference is running.
+
+Estimated from list prices: about $0.30 per hour for the cluster — roughly
+$190–215 a month if left running all the time, versus about $15–30 a month in
+practice with teardown when idle. The main costs are the EKS control plane, the
+general node and the NAT gateway. GPU nodes are billed separately, and only while
+a GPU workload is running.
+
+## Lessons learned
+
+- Kubernetes controllers create AWS resources that Terraform never sees: load
+  balancers, security groups, target groups, autoscaler nodes and storage
+  volumes. Teardown therefore follows a strict order, and a script verifies that
+  nothing was left behind.
+- Argo CD's self-healing undoes teardown steps unless it's switched off first.
+- EKS bills six times more once a Kubernetes version leaves standard support, and
+  moves clusters there automatically. An explicit upgrade policy prevents it.
+- An image built by hand, outside CI, turned out to contain vulnerabilities the
+  CI gate would have blocked. Only CI-built images get deployed now.
 
 ## Design decisions
-- [ADR-0001](docs/adrs/0001-split-terraform-state.md) — persistent vs ephemeral stacks
-- [ADR-0002](docs/adrs/0002-standalone-terraform-backend-state-bucket.md) — Standalone backend bucket
-- [ADR-0003](docs/adrs/0003-native-s3-state-locking.md) — Native S3 state locking
-- [ADR-0004](docs/adrs/0004-declare-eks-core-addons-explicitly.md) — EKS core add-ons
-- [ADR-0005](docs/adrs/0005-kubernetes-version-policy.md) — pinning standard support
-- [ADR-0006](docs/adrs/0006-pod-identity-over-IRSA.md) — Pod identity over IRSA
+
+- [ADR-0001](docs/adrs/0001-split-terraform-state.md) — persistent vs. ephemeral stacks
+- [ADR-0002](docs/adrs/0002-standalone-terraform-backend-state-bucket.md) — standalone state bucket
+- [ADR-0003](docs/adrs/0003-native-s3-state-locking.md) — native S3 state locking
+- [ADR-0004](docs/adrs/0004-declare-eks-core-addons-explicitly.md) — explicit EKS core add-ons
+- [ADR-0005](docs/adrs/0005-kubernetes-version-policy.md) — Kubernetes version and support policy
+- [ADR-0006](docs/adrs/0006-pod-identity-over-IRSA.md) — Pod Identity over IRSA
