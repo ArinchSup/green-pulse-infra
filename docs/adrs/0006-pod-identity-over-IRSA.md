@@ -1,4 +1,4 @@
-# ADR 0065: Pod identity instead of IRSA
+# ADR 0006: Pod identity instead of IRSA
 
 * **Status:** Accepted
 * **Date:** 2026-08-16
